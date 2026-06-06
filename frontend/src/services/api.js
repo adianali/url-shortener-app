@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// Di production (Vercel) frontend & backend 1 domain → pakai relative URL
+// Di lokal → pakai VITE_API_URL dari .env
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -61,7 +63,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/refresh`,
+          `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
           { refreshToken }
         )
         const newToken = data.accessToken

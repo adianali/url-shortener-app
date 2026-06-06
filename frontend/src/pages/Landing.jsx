@@ -16,7 +16,7 @@ const FEATURES = [
 // ── Popup: input nama alias ────────────────────────────────────────────────────
 function SlugPopup({ originalUrl, onConfirm, onCancel, loading }) {
   const [nama, setNama] = useState('')
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
 
   const handleConfirm = (e) => {
     e.preventDefault()
@@ -143,7 +143,7 @@ export default function Landing() {
   const [result, setResult] = useState(null)
   const { copied, copy } = useClipboard()
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
 
   const mutation = useMutation({
     mutationFn: createUrl,
