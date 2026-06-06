@@ -21,14 +21,18 @@ const app = express();
 // Security
 app.use(helmet());
 
-// CORS
-if (!process.env.ALLOWED_ORIGINS) throw new Error('Missing required env: ALLOWED_ORIGINS');
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim());
+// CORS — lazy-read env agar aman di Vercel serverless cold start
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      cb(new Error('Not allowed by CORS'));
+      // same-origin (no Origin header) selalu diizinkan
+      if (!origin) return cb(null, true)
+      const allowed = (process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
+      if (allowed.includes(origin)) return cb(null, true)
+      cb(new Error('Not allowed by CORS'))
     },
     credentials: true,
   })
