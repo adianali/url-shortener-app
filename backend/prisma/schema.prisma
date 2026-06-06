@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+
+  // Audit fields
+  createdAt    DateTime  @default(now())
+  createdBy    String?   // email / name yang membuat (null = self-register)
+  updatedAt    DateTime  @updatedAt
+  updatedBy    String?   // email / name yang terakhir mengubah
+  deletedAt    DateTime? // null = aktif; terisi = soft-deleted
+  deletedBy    String?   // email / name yang menghapus
+
+  urls          Url[]
+  refreshTokens RefreshToken[]
+}
+
+// ─────────────────────────────────────────────
+// REFRESH TOKEN
+// ─────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  // Audit fields
+  createdAt DateTime  @default(now())
+  createdBy String?
+  updatedAt DateTime  @updatedAt
+  updatedBy String?
+  deletedAt DateTime? // null = masih valid; terisi = sudah di-revoke (soft delete)
+  deletedBy String?
+}
+
+// ─────────────────────────────────────────────
+// URL
+// ─────────────────────────────────────────────
+model Url {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  originalUrl String
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  password    String?   // hashed
+  expiresAt   DateTime?
+
+  // Audit fields
+  createdAt   DateTime  @default(now())
+  createdBy   String?   // email / name pembuat
+  updatedAt   DateTime  @updatedAt
+  updatedBy   String?   // email / name yang terakhir mengubah
+  deletedAt   DateTime? // null = aktif; terisi = soft-deleted
+  deletedBy   String?   // email / name yang menghapus
+
+  clicks      Click[]
+
+  @@index([slug])
+  @@index([deletedAt]) // index untuk filter aktif
+}
+
+// ─────────────────────────────────────────────
+// CLICK (analytics — tidak dihapus, hanya soft delete jika dibutuhkan)
+// ─────────────────────────────────────────────
+model Click {
+  id        String   @id @default(cuid())
+  urlId     String
+  url       Url      @relation(fields: [urlId], references: [id], onDelete: Cascade)
+  ip        String?
+  country   String?
+  city      String?
+  device    String?  // desktop | mobile | tablet
+  browser   String?
+  os        String?
+  referer   String?
+  userAgent String?
+
+  // Audit fields
+  createdAt DateTime  @default(now())
+  createdBy String?   // system / ip sebagai identifier
+  updatedAt DateTime  @updatedAt
+  updatedBy String?
+  deletedAt DateTime? // null = valid; terisi = soft-deleted
+  deletedBy String?
+
+  @@index([urlId, createdAt])
+  @@index([deletedAt])
+}

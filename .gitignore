@@ -1,0 +1,71 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+combined.log
+error.log
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+pids/
+*.pid
+*.seed
+*.pid.lock
+.nyc_output/
+
+# ── Database / Prisma ─────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+prisma/dev.db
+prisma/test.db
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage/
+.jest-cache/
+junit.xml
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+.cache/
+.temp/
+tmp/
+.turbo/
