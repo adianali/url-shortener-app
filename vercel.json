@@ -1,22 +1,22 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build && cd ../backend && npm install",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "backend/api/index.js": {
+    "api/index.js": {
       "memory": 512,
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/:path*",       "destination": "/backend/api/index.js" },
-    { "source": "/docs/:path*",      "destination": "/backend/api/index.js" },
-    { "source": "/health",           "destination": "/backend/api/index.js" },
+    { "source": "/api/:path*",       "destination": "/api/index.js" },
+    { "source": "/docs/:path*",      "destination": "/api/index.js" },
+    { "source": "/health",           "destination": "/api/index.js" },
     { "source": "/login",            "destination": "/index.html" },
     { "source": "/register",         "destination": "/index.html" },
     { "source": "/dashboard",        "destination": "/index.html" },
     { "source": "/dashboard/:path*", "destination": "/index.html" },
     { "source": "/settings",         "destination": "/index.html" },
     { "source": "/settings/:path*",  "destination": "/index.html" },
-    { "source": "/:slug",            "destination": "/backend/api/index.js" }
+    { "source": "/:slug",            "destination": "/api/index.js" }
   ]
 }
