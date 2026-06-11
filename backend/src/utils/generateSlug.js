@@ -30,20 +30,11 @@ async function generateUniqueSlug(customSlug) {
     return customSlug;
   }
 
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  while (attempts < maxAttempts) {
+  for (let attempt = 0; attempt < 10; attempt++) {
     const slug = generateRandomSlug();
-    if (RESERVED_WORDS.has(slug.toLowerCase())) {
-      attempts++;
-      continue;
-    }
+    if (RESERVED_WORDS.has(slug.toLowerCase())) continue;
     const existing = await prisma.url.findUnique({ where: { slug } });
-    if (!existing) {
-      return slug;
-    }
-    attempts++;
+    if (!existing) return slug;
   }
 
   throw new Error('Failed to generate unique slug after max attempts');

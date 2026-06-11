@@ -10,7 +10,6 @@ async function checkRateLimit(key, limit, windowSeconds) {
     return { allowed: current <= limit, current, limit };
   } catch (err) {
     logger.error('Rate limiter Redis error:', err);
-    // Fail open on Redis errors
     return { allowed: true, current: 0, limit };
   }
 }
@@ -24,12 +23,10 @@ function getClientIp(req) {
   );
 }
 
-// Global: 100 req / 15min per IP
 function globalRateLimiter() {
   return async (req, res, next) => {
     const ip = getClientIp(req);
-    const key = `ratelimit:${ip}`;
-    const { allowed, current, limit } = await checkRateLimit(key, 100, 15 * 60);
+    const { allowed, current, limit } = await checkRateLimit(`ratelimit:${ip}`, 100, 15 * 60);
 
     res.setHeader('X-RateLimit-Limit', limit);
     res.setHeader('X-RateLimit-Remaining', Math.max(0, limit - current));
@@ -44,22 +41,13 @@ function globalRateLimiter() {
   };
 }
 
-// Create URL rate limiter: 5/hour (no auth) or 50/hour (auth)
 function createUrlRateLimiter() {
   return async (req, res, next) => {
     const ip = getClientIp(req);
-    let key;
-    let limit;
+    const key = req.user ? `ratelimit:user:${req.user.id}` : `ratelimit:create:${ip}`;
+    const limit = req.user ? 50 : 5;
 
-    if (req.user) {
-      key = `ratelimit:user:${req.user.id}`;
-      limit = 50;
-    } else {
-      key = `ratelimit:create:${ip}`;
-      limit = 5;
-    }
-
-    const { allowed, current } = await checkRateLimit(key, limit, 3600);
+    const { allowed } = await checkRateLimit(key, limit, 3600);
 
     if (!allowed) {
       return res.status(429).json({

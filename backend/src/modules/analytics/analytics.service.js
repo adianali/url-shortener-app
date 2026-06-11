@@ -1,6 +1,5 @@
 const prisma = require('../../config/database');
 
-// Hanya klik yang belum soft-deleted
 const ACTIVE_CLICK = { deletedAt: null };
 
 async function verifyUrlOwnership(urlId, userId) {
@@ -15,50 +14,78 @@ async function verifyUrlOwnership(urlId, userId) {
   return url;
 }
 
-async function getAnalytics(urlId, userId) {
+// Generate array tanggal dari N hari terakhir
+function buildDateRange(days) {
+  const dates = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() - i);
+    dates.push(d.toISOString().slice(0, 10)); // "YYYY-MM-DD"
+  }
+  return dates;
+}
+
+async function getAnalytics(urlId, userId, period = '7d') {
   await verifyUrlOwnership(urlId, userId);
 
-  const where = { urlId, ...ACTIVE_CLICK };
+  const days = period === '90d' ? 90 : period === '30d' ? 30 : 7;
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - (days - 1));
 
-  const [totalClicks, uniqueVisitors, byCountry, byDevice, byBrowser, byOs] =
-    await Promise.all([
-      prisma.click.count({ where }),
-      // Unique visitor berdasarkan IP
-      prisma.click.groupBy({ by: ['ip'], where }).then((r) => r.length),
-      prisma.click.groupBy({
-        by: ['country'],
-        where,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10,
-      }),
-      prisma.click.groupBy({
-        by: ['device'],
-        where,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-      }),
-      prisma.click.groupBy({
-        by: ['browser'],
-        where,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-      }),
-      prisma.click.groupBy({
-        by: ['os'],
-        where,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-      }),
-    ]);
+  const where = { urlId, ...ACTIVE_CLICK };
+  const wherePeriod = { ...where, createdAt: { gte: since } };
+
+  const [
+    totalClicks,
+    uniqueIps,
+    byCountry,
+    byDevice,
+    byBrowser,
+    byOs,
+    byReferer,
+    clicksInPeriod,
+  ] = await Promise.all([
+    prisma.click.count({ where }),
+    prisma.click.groupBy({ by: ['ip'], where }),
+    prisma.click.groupBy({ by: ['country'], where, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 10 }),
+    prisma.click.groupBy({ by: ['device'], where, _count: { id: true }, orderBy: { _count: { id: 'desc' } } }),
+    prisma.click.groupBy({ by: ['browser'], where, _count: { id: true }, orderBy: { _count: { id: 'desc' } } }),
+    prisma.click.groupBy({ by: ['os'], where, _count: { id: true }, orderBy: { _count: { id: 'desc' } } }),
+    prisma.click.groupBy({
+      by: ['referer'],
+      where: { ...where, referer: { not: null } },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 8,
+    }),
+    prisma.click.findMany({
+      where: wherePeriod,
+      select: { createdAt: true },
+    }),
+  ]);
+
+  // Build time series: group klik by tanggal, fill hari kosong dengan 0
+  const countByDate = {};
+  clicksInPeriod.forEach((c) => {
+    const day = c.createdAt.toISOString().slice(0, 10);
+    countByDate[day] = (countByDate[day] || 0) + 1;
+  });
+  const timeSeries = buildDateRange(days).map((date) => ({
+    date,
+    clicks: countByDate[date] || 0,
+  }));
 
   return {
     totalClicks,
-    uniqueVisitors,
-    byCountry: byCountry.map((r) => ({ country: r.country, clicks: r._count.id })),
-    byDevice: byDevice.map((r) => ({ device: r.device, clicks: r._count.id })),
-    byBrowser: byBrowser.map((r) => ({ browser: r.browser, clicks: r._count.id })),
-    byOs: byOs.map((r) => ({ os: r.os, clicks: r._count.id })),
+    uniqueVisitors: uniqueIps.length,
+    timeSeries,
+    devices: byDevice.map((r) => ({ name: r.device || 'unknown', value: r._count.id })),
+    browsers: byBrowser.map((r) => ({ name: r.browser || 'unknown', value: r._count.id })),
+    os: byOs.map((r) => ({ name: r.os || 'unknown', value: r._count.id })),
+    countries: byCountry.map((r) => ({ name: r.country || 'Unknown', value: r._count.id })),
+    referrers: byReferer.map((r) => ({ name: r.referer, value: r._count.id })),
   };
 }
 
@@ -106,9 +133,10 @@ async function getSummary(urlId, userId) {
 
   const where = { urlId, ...ACTIVE_CLICK };
 
-  const [total, last24hCount, last7dCount, last30dCount, topReferers] =
+  const [totalClicks, uniqueIps, last24hCount, last7dCount, last30dCount, topReferers] =
     await Promise.all([
       prisma.click.count({ where }),
+      prisma.click.groupBy({ by: ['ip'], where }),
       prisma.click.count({ where: { ...where, createdAt: { gte: last24h } } }),
       prisma.click.count({ where: { ...where, createdAt: { gte: last7d } } }),
       prisma.click.count({ where: { ...where, createdAt: { gte: last30d } } }),
@@ -122,7 +150,8 @@ async function getSummary(urlId, userId) {
     ]);
 
   return {
-    total,
+    totalClicks,
+    uniqueVisitors: uniqueIps.length,
     last24h: last24hCount,
     last7d: last7dCount,
     last30d: last30dCount,

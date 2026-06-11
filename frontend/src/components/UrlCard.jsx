@@ -13,7 +13,7 @@ const STATUS_STYLES = {
 
 export default function UrlCard({ url, onEdit, onDelete }) {
   const { copy } = useClipboard()
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
   const shortUrl = `${baseUrl}/${url.slug}`
 
   const handleCopy = async () => {

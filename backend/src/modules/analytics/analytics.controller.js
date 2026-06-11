@@ -2,7 +2,8 @@ const analyticsService = require('./analytics.service');
 
 async function getAnalytics(req, res, next) {
   try {
-    const data = await analyticsService.getAnalytics(req.params.id, req.user.id);
+    const period = req.query.period || '7d';
+    const data = await analyticsService.getAnalytics(req.params.id, req.user.id, period);
     res.json({ success: true, data });
   } catch (err) {
     next(err);

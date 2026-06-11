@@ -1,33 +1,21 @@
 import axios from 'axios'
 
-// Di production (Vercel) frontend & backend 1 domain → pakai relative URL
-// Di lokal → pakai VITE_API_URL dari .env
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach JWT on every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// On 401 → try refresh, else clear + redirect
 let isRefreshing = false
 let failedQueue = []
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
+  failedQueue.forEach((prom) => (error ? prom.reject(error) : prom.resolve(token)))
   failedQueue = []
 }
 
@@ -35,8 +23,9 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    const isAuthEndpoint = originalRequest.url?.includes('/api/auth/')
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -68,9 +57,7 @@ api.interceptors.response.use(
         )
         const newToken = data.accessToken
         localStorage.setItem('accessToken', newToken)
-        if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken)
-        }
+        if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken)
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`
         processQueue(null, newToken)
         originalRequest.headers.Authorization = `Bearer ${newToken}`

@@ -73,11 +73,11 @@ export default function Analytics() {
   const url = urlData?.url || urlData
   const shortUrl = url ? `${baseUrl}/${url.slug}` : ''
 
-  const clicksData = analytics?.clicks || analytics?.timeSeries || []
-  const deviceData = analytics?.devices || summary?.devices || []
-  const browserData = analytics?.browsers || summary?.browsers || []
-  const countryData = analytics?.countries || summary?.countries || []
-  const referrers = analytics?.referrers || summary?.referrers || []
+  const clicksData = analytics?.timeSeries || []
+  const deviceData = analytics?.devices || []
+  const browserData = analytics?.browsers || []
+  const countryData = analytics?.countries || []
+  const referrers = analytics?.referrers || []
 
   const stats = [
     { icon: MousePointerClick, label: 'Total Clicks', value: summary?.totalClicks ?? 0, color: 'violet' },

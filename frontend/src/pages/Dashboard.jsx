@@ -7,9 +7,11 @@ import StatCard from '../components/StatCard'
 import UrlCard from '../components/UrlCard'
 import SkeletonRow from '../components/SkeletonRow'
 import CreateUrlModal from '../components/CreateUrlModal'
+import EditUrlModal from '../components/EditUrlModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import { listUrls, deleteUrl, getDashboard, updateUrl } from '../services/urls'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
 const PAGE_SIZE = 10
 
@@ -43,7 +45,7 @@ export default function Dashboard() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       setDeleteTarget(null)
     },
-    onError: () => toast.error('Failed to delete URL'),
+    onError: (err) => toast.error(getErrorMessage(err, 'Gagal menghapus URL')),
   })
 
   const urls = urlsData?.urls || urlsData?.data || []
@@ -178,6 +180,7 @@ export default function Dashboard() {
       </motion.button>
 
       <CreateUrlModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
+      <EditUrlModal url={editTarget} onClose={() => setEditTarget(null)} />
 
       <DeleteConfirmModal
         isOpen={!!deleteTarget}

@@ -4,6 +4,7 @@ import { X, Link2, Tag, Clock, Lock, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createUrl } from '../services/urls'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
 export default function CreateUrlModal({ isOpen, onClose }) {
   const qc = useQueryClient()
@@ -20,7 +21,7 @@ export default function CreateUrlModal({ isOpen, onClose }) {
       setForm({ originalUrl: '', slug: '', expiresAt: '', password: '' })
     },
     onError: (err) => {
-      toast.error(err?.response?.data?.message || 'Failed to create URL')
+      toast.error(getErrorMessage(err, 'Gagal membuat URL'))
     },
   })
 

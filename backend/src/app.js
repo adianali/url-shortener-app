@@ -18,31 +18,26 @@ const { authenticate } = require('./middlewares/auth');
 
 const app = express();
 
-// Security
 app.use(helmet());
 
-// CORS — lazy-read env agar aman di Vercel serverless cold start
 app.use(
   cors({
     origin: (origin, cb) => {
-      // same-origin (no Origin header) selalu diizinkan
-      if (!origin) return cb(null, true)
+      if (!origin) return cb(null, true);
       const allowed = (process.env.ALLOWED_ORIGINS || '')
         .split(',')
         .map((o) => o.trim())
-        .filter(Boolean)
-      if (allowed.includes(origin)) return cb(null, true)
-      cb(new Error('Not allowed by CORS'))
+        .filter(Boolean);
+      if (allowed.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
   })
 );
 
-// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
 app.use(
   morgan('combined', {
     stream: { write: (msg) => logger.info(msg.trim()) },
@@ -50,23 +45,18 @@ app.use(
   })
 );
 
-// Global rate limiter (skip redirect routes)
 app.use(/^\/api/, globalRateLimiter());
 
-// Swagger docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
 });
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/urls', urlRoutes);
 app.use('/api/urls/:id/analytics', analyticsRoutes);
 
-// Dashboard
 /**
  * @swagger
  * /api/dashboard:
@@ -81,10 +71,8 @@ app.use('/api/urls/:id/analytics', analyticsRoutes);
  */
 app.get('/api/dashboard', authenticate(true), urlController.getDashboard);
 
-// Redirect routes (must be last to avoid conflicts with /api/*)
 app.use('/', redirectRoutes);
 
-// 404 fallback
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -92,7 +80,6 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
 app.use(errorHandler);
 
 module.exports = app;

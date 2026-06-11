@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { createUrl } from '../services/urls'
 import { useClipboard } from '../hooks/useClipboard'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
 const FEATURES = [
   { icon: Zap, title: 'Lightning Fast', desc: 'Redirects in under 50ms globally with edge caching.' },
@@ -154,8 +155,7 @@ export default function Landing() {
       toast.success('Link berhasil dibuat!')
     },
     onError: (err) => {
-      const msg = err?.response?.data?.error?.message || 'Gagal membuat link. Coba lagi.'
-      toast.error(msg)
+      toast.error(getErrorMessage(err, 'Gagal membuat link. Coba lagi.'))
     },
   })
 
@@ -204,14 +204,11 @@ export default function Landing() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center">
             <Link2 size={16} className="text-white" />
           </div>
-          <span className="font-bold text-xl text-zinc-100 tracking-tight">Snip</span>
+          <span className="font-bold text-xl text-zinc-100 tracking-tight">Alsnip</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/login" className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-4 py-2">
+          <Link to="/login" className="btn-primary text-sm py-2 px-4">
             Sign in
-          </Link>
-          <Link to="/register" className="btn-primary text-sm py-2 px-4">
-            Get Started
           </Link>
         </div>
       </nav>
@@ -372,7 +369,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-zinc-800 py-6 text-center text-zinc-600 text-xs">
-        © {new Date().getFullYear()} Snip. Built with React &amp; Tailwind CSS.
+        © {new Date().getFullYear()} Alsnip.
       </footer>
     </div>
   )

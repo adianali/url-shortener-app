@@ -3,6 +3,9 @@ const logger = require('../utils/logger');
 
 const ERROR_MAP = {
   AUTH_INVALID_CREDENTIALS: 401,
+  AUTH_EMAIL_NOT_FOUND: 401,
+  AUTH_WRONG_PASSWORD: 401,
+  AUTH_EMAIL_TAKEN: 409,
   AUTH_TOKEN_EXPIRED: 401,
   AUTH_UNAUTHORIZED: 403,
   URL_NOT_FOUND: 404,
@@ -15,7 +18,6 @@ const ERROR_MAP = {
 };
 
 function errorHandler(err, req, res, next) {
-  // ZodError → 422
   if (err instanceof ZodError) {
     return res.status(422).json({
       success: false,
@@ -30,7 +32,6 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // Prisma unique constraint violation → 409
   if (err.code === 'P2002') {
     return res.status(409).json({
       success: false,
@@ -41,18 +42,13 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // Known app errors
   if (err.code && ERROR_MAP[err.code]) {
     return res.status(ERROR_MAP[err.code]).json({
       success: false,
-      error: {
-        code: err.code,
-        message: err.message,
-      },
+      error: { code: err.code, message: err.message },
     });
   }
 
-  // Unknown errors
   logger.error('Unhandled error:', err);
   return res.status(500).json({
     success: false,

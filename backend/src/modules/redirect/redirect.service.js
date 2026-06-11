@@ -8,51 +8,25 @@ const logger = require('../../utils/logger');
 
 const CACHE_TTL = 3600;
 
-/**
- * Ambil URL dari Redis cache atau database.
- * Hanya URL yang belum soft-deleted (deletedAt: null).
- */
 async function getUrlBySlug(slug) {
-  // 1. Coba Redis cache
   const cached = await redis.get(`url:${slug}`);
-  if (cached) {
-    return JSON.parse(cached);
-  }
+  if (cached) return JSON.parse(cached);
 
-  // 2. Query DB — hanya yang belum dihapus
   const url = await prisma.url.findFirst({
     where: { slug, deletedAt: null },
-    select: {
-      id: true,
-      slug: true,
-      originalUrl: true,
-      password: true,
-      expiresAt: true,
-      // deletedAt tidak perlu di-cache; filter sudah di atas
-    },
+    select: { id: true, slug: true, originalUrl: true, password: true, expiresAt: true },
   });
 
-  if (url) {
-    // Simpan ke cache (termasuk password agar verifyPassword bisa cek dari cache)
-    await redis.setex(`url:${slug}`, CACHE_TTL, JSON.stringify(url));
-  }
-
+  if (url) await redis.setex(`url:${slug}`, CACHE_TTL, JSON.stringify(url));
   return url;
 }
 
-/**
- * Catat klik secara async (fire-and-forget).
- * createdBy diisi IP sebagai identifier sistem.
- */
 async function recordClick(urlId, req) {
   const ip = getClientIp(req);
   const ua = req.headers['user-agent'] || '';
   const referer = req.headers.referer || req.headers.referrer || null;
 
-  const [geo, parsed] = await Promise.all([
-    getGeoIP(ip),
-    Promise.resolve(parseUserAgent(ua)),
-  ]);
+  const [geo, parsed] = await Promise.all([getGeoIP(ip), Promise.resolve(parseUserAgent(ua))]);
 
   await prisma.click.create({
     data: {
@@ -65,18 +39,11 @@ async function recordClick(urlId, req) {
       os: parsed.os,
       referer,
       userAgent: ua,
-      createdBy: ip, // system-generated; IP sebagai identifier
+      createdBy: ip,
     },
   });
 }
 
-/**
- * Proses redirect:
- * 1. Cek cache / DB
- * 2. Validasi expire & soft-delete
- * 3. Cek password protection
- * 4. Fire-and-forget click
- */
 async function redirect(slug, req) {
   const url = await getUrlBySlug(slug);
 
@@ -92,21 +59,12 @@ async function redirect(slug, req) {
     throw err;
   }
 
-  if (url.password) {
-    return { requiresPassword: true, slug };
-  }
+  if (url.password) return { requiresPassword: true, slug };
 
-  // Catat klik — jangan await agar redirect tetap cepat
-  recordClick(url.id, req).catch((err) =>
-    logger.error('Failed to record click:', err)
-  );
-
+  recordClick(url.id, req).catch((err) => logger.error('Failed to record click:', err));
   return { redirectTo: url.originalUrl };
 }
 
-/**
- * Verifikasi password untuk URL yang diproteksi.
- */
 async function verifyPassword(slug, password, req) {
   const url = await getUrlBySlug(slug);
 
@@ -123,10 +81,7 @@ async function verifyPassword(slug, password, req) {
   }
 
   if (!url.password) {
-    // Tidak ada password, langsung redirect
-    recordClick(url.id, req).catch((err) =>
-      logger.error('Failed to record click:', err)
-    );
+    recordClick(url.id, req).catch((err) => logger.error('Failed to record click:', err));
     return { redirectTo: url.originalUrl };
   }
 
@@ -137,10 +92,7 @@ async function verifyPassword(slug, password, req) {
     throw err;
   }
 
-  recordClick(url.id, req).catch((err) =>
-    logger.error('Failed to record click:', err)
-  );
-
+  recordClick(url.id, req).catch((err) => logger.error('Failed to record click:', err));
   return { redirectTo: url.originalUrl };
 }
 

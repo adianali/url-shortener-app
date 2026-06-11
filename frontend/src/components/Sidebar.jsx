@@ -19,7 +19,7 @@ export default function Sidebar({ onClose }) {
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center">
           <Link2 size={16} className="text-white" />
         </div>
-        <span className="font-bold text-zinc-100 text-lg tracking-tight">Snip</span>
+        <span className="font-bold text-zinc-100 text-lg tracking-tight">Alsnip</span>
       </div>
 
       {/* Nav */}
